@@ -1,0 +1,21 @@
+# Flask Web Framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+
+# For future database integration
+# Flask-SQLAlchemy==3.1.1
+# Flask-Migrate==4.0.5
+# Flask-Login==0.6.3
+
+# Production server
+gunicorn==21.2.0
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Date/time utilities (built-in, but listing for clarity)
+# datetime - included in Python standard library
+
+# Testing
+pytest==7.4.3
+pytest-flask==1.3.0
