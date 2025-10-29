@@ -526,31 +526,20 @@ class WordRiseGame:
         self.validator.set_api_fallback(enabled)
     
     @staticmethod
-    def get_daily_word(day: Optional[date] = None) -> str:
+    def get_random_starting_word() -> str:
         """
-        Get the daily challenge word for a specific day
-        Deterministic based on date for consistency
+        Get a random 3-letter word for starting a new game
+        Returns a different word each time for unlimited replayability
         """
-        if day is None:
-            day = date.today()
-        
-        # Use date as seed for random word selection
-        seed = int(day.strftime('%Y%m%d'))
-        random.seed(seed)
-        
-        # Always return 3-letter word for daily challenge
+        # Always return random 3-letter word
         validator = WordValidator()
         three_letter_words = validator.get_words_of_length(3)
         
         if not three_letter_words:
             return 'cat'
         
-        word = random.choice(three_letter_words)
-        
-        # Reset random seed
-        random.seed()
-        
-        return word
+        # Return a truly random word (no date-based seed)
+        return random.choice(three_letter_words)
 
 
 # Helper function for quick game testing
