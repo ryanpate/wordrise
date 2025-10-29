@@ -1,19 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WordRise - Build Your Word Tower</title>
-    <meta name="description"
-        content="WordRise: An addictive word game where you build towers by adding one letter at a time. Play daily challenges or practice mode!">
+    <meta name="description" content="WordRise: An addictive word game where you build towers by adding one letter at a time. Play daily challenges or practice mode!">
     <link rel="stylesheet" href="static/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 </head>
-
 <body>
     <!-- Landing Page -->
     <div id="landing-page" class="landing-page">
@@ -28,9 +24,8 @@
             <main class="landing-main">
                 <div class="hero">
                     <h2 class="hero-title">Build Your Word Tower</h2>
-                    <p class="hero-subtitle">Add one letter at a time. Use all previous letters. Build the highest
-                        tower!</p>
-
+                    <p class="hero-subtitle">Add one letter at a time. Use all previous letters. Build the highest tower!</p>
+                    
                     <div class="example-tower">
                         <div class="example-word example-level-4">STREAM</div>
                         <div class="example-word example-level-3">START</div>
@@ -118,8 +113,7 @@
             </div>
             <div class="modal-body">
                 <p>Choose your starting word (3 letters):</p>
-                <input type="text" id="starting-word-input" placeholder="e.g., cat, art, dog" maxlength="3"
-                    autocomplete="off">
+                <input type="text" id="starting-word-input" placeholder="e.g., cat, art, dog" maxlength="3" autocomplete="off">
                 <div class="suggestions">
                     <span class="suggestion-label">Suggestions:</span>
                     <button class="suggestion-btn" onclick="setStartWord('cat')">cat</button>
@@ -184,8 +178,14 @@
             <!-- Word Input -->
             <div class="input-container">
                 <div class="input-wrapper">
-                    <input type="text" id="word-input" placeholder="Type your word..." autocomplete="off"
-                        autocapitalize="off" spellcheck="false">
+                    <input 
+                        type="text" 
+                        id="word-input" 
+                        placeholder="Type your word..."
+                        autocomplete="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                    >
                     <button class="btn btn-primary btn-submit" onclick="submitWord()">
                         <span>Add Word</span>
                         <span class="submit-icon">↑</span>
@@ -240,8 +240,7 @@
                             </div>
                             <div class="rule-item">
                                 <span class="rule-icon">3️⃣</span>
-                                <p><strong>Use All:</strong> Your new word must use ALL letters from the previous word
-                                </p>
+                                <p><strong>Use All:</strong> Your new word must use ALL letters from the previous word</p>
                             </div>
                             <div class="rule-item">
                                 <span class="rule-icon">4️⃣</span>
@@ -262,8 +261,7 @@
                                 <li>Level 2 (4 letters): 4 × 2 = 8 points</li>
                                 <li>Level 3 (5 letters): 5 × 3 = 15 points</li>
                             </ul>
-                            <p><strong>Bonus points for:</strong> Uncommon letters (Q, X, Z, J, K) and fast completion!
-                            </p>
+                            <p><strong>Bonus points for:</strong> Uncommon letters (Q, X, Z, J, K) and fast completion!</p>
                         </div>
                     </div>
                 </div>
@@ -328,5 +326,4 @@
     <script src="static/js/game.js"></script>
     <script src="static/js/app.js"></script>
 </body>
-
 </html>

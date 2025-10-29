@@ -1,48 +1,37 @@
 """
-WordRise Flask Application Runner
+WordRise Flask Application
+Serves static files and API endpoints for Railway deployment
 """
+from flask import Flask, send_from_directory, jsonify
+from flask_cors import CORS
+from app.api.routes import api_bp
 import os
-from app import create_app
 
-# Create Flask app
-app = create_app()
+app = Flask(__name__, 
+            static_folder='static',
+            static_url_path='/static')
+
+# Enable CORS for all routes
+CORS(app)
+
+# Register API blueprint
+app.register_blueprint(api_bp, url_prefix='/api')
+
+# Serve index.html at root
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.html')
+
+# Serve data files
+@app.route('/data/<path:filename>')
+def serve_data(filename):
+    return send_from_directory('data', filename)
+
+# Health check for Railway
+@app.route('/health')
+def health():
+    return jsonify({"status": "healthy", "service": "wordrise"}), 200
 
 if __name__ == '__main__':
-    # Get port from environment or default to 8080
-    port = int(os.environ.get('PORT', 8080))
-
-    # Get debug mode from environment
-    debug = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
-    
-    print(f"""
-    🏗️  WordRise API Server
-    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    Environment: {os.environ.get('FLASK_ENV', 'development')}
-    Port: {port}
-    Debug: {debug}
-    
-    API Endpoints:
-    - GET  /                          Root info
-    - GET  /api/health                Health check
-    
-    Game Endpoints:
-    - POST /api/game/start            Start new game
-    - GET  /api/game/<id>/state       Get game state
-    - POST /api/game/<id>/add-word    Add word to tower
-    - GET  /api/game/<id>/hint        Get hint
-    - POST /api/game/<id>/undo        Undo last word
-    - POST /api/game/<id>/reset       Reset game
-    - POST /api/game/<id>/end         End game
-    
-    Daily Challenge:
-    - GET  /api/daily/word            Get daily word
-    
-    Utilities:
-    - POST /api/validate-word         Validate a word
-    - GET  /api/stats                 Server stats
-    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    
-    🚀 Server starting on http://localhost:{port}
-    """)
-    
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
