@@ -7,14 +7,15 @@
     <meta name="description" content="WordRise Enhanced: Build word towers, earn tokens, use powerups, and compete on leaderboards!">
     <link rel="stylesheet" href="static/css/style.css">
     <style>
-        /* Enhanced Styles */
+        /* Enhanced Styles - Paper Look */
         .auth-container {
             max-width: 400px;
             margin: 50px auto;
             padding: 30px;
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.05);
+            border: 1px solid #e0e0e0;
         }
         
         .auth-form input {
@@ -24,37 +25,48 @@
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 16px;
+            background: #fafafa;
+            transition: all 0.3s;
+        }
+        
+        .auth-form input:focus {
+            outline: none;
+            border-color: #4A90E2;
+            background: white;
         }
         
         .auth-form button {
             width: 100%;
             padding: 14px;
             margin-top: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #4A90E2;
             color: white;
             border: none;
             border-radius: 8px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s;
         }
         
         .auth-form button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            background: #357ABD;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
         
         .token-display {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: #4A90E2;
             color: white;
-            padding: 15px 25px;
-            border-radius: 12px;
+            padding: 12px 20px;
+            border-radius: 8px;
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            font-size: 18px;
+            gap: 8px;
+            font-size: 16px;
             font-weight: 700;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            border: 1px solid rgba(255,255,255,0.2);
         }
         
         .difficulty-selector {
@@ -62,6 +74,7 @@
             gap: 15px;
             margin: 20px 0;
             justify-content: center;
+            flex-wrap: wrap;
         }
         
         .difficulty-btn {
@@ -71,12 +84,20 @@
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .difficulty-btn:hover {
+            border-color: #4A90E2;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
         }
         
         .difficulty-btn.selected {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #4A90E2;
             color: white;
-            border-color: #667eea;
+            border-color: #4A90E2;
+            box-shadow: 0 3px 8px rgba(74,144,226,0.3);
         }
         
         .powerup-grid {
@@ -94,10 +115,11 @@
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
         .powerup-card:hover:not(.disabled) {
-            border-color: #667eea;
+            border-color: #4A90E2;
             transform: translateY(-3px);
             box-shadow: 0 6px 20px rgba(0,0,0,0.1);
         }
@@ -124,18 +146,19 @@
         }
         
         .stats-panel {
-            background: white;
+            background: #fafafa;
             padding: 25px;
-            border-radius: 15px;
+            border-radius: 12px;
             margin: 20px 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
         }
         
         .stat-row {
             display: flex;
             justify-content: space-between;
             padding: 12px 0;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid #e0e0e0;
         }
         
         .stat-row:last-child {
