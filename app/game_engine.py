@@ -1,6 +1,10 @@
 """
 WordRise Game Engine
 Core game logic for word tower building
+
+Enhanced with Hybrid Word Validation:
+- Primary: Local JSON cache (3,154 curated words) - instant validation
+- Fallback: Datamuse API (100,000+ words) - for extended vocabulary
 """
 import json
 import os
@@ -8,18 +12,113 @@ from collections import Counter
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime, date
 import random
+from functools import lru_cache
+import requests
+
+
+import requests
+
+
+class DatamuseAPIValidator:
+    """
+    Datamuse API word validator with caching
+    Used as fallback when word not in local cache
+    """
+    
+    BASE_URL = "https://api.datamuse.com/words"
+    
+    @staticmethod
+    @lru_cache(maxsize=10000)  # Cache up to 10,000 API lookups
+    def is_valid_word(word: str) -> bool:
+        """
+        Check if a word is valid using Datamuse API
+        
+        Args:
+            word: Word to validate
+            
+        Returns:
+            True if word is valid, False otherwise
+        """
+        word = word.lower().strip()
+        
+        try:
+            response = requests.get(
+                DatamuseAPIValidator.BASE_URL,
+                params={"sp": word, "max": 1},
+                timeout=2  # 2 second timeout
+            )
+            
+            if response.status_code == 200:
+                results = response.json()
+                # Check for exact match (case-insensitive)
+                return len(results) > 0 and results[0]['word'].lower() == word
+            
+            return False
+            
+        except requests.exceptions.RequestException:
+            # If API fails, return False (don't block gameplay)
+            # The local cache should handle most words anyway
+            return False
+    
+    @staticmethod
+    @lru_cache(maxsize=1000)
+    def get_word_frequency(word: str) -> float:
+        """
+        Get word frequency score from Datamuse
+        Higher score = more common word
+        
+        Args:
+            word: Word to check frequency for
+            
+        Returns:
+            Frequency score (0.0 if not found or API fails)
+        """
+        try:
+            response = requests.get(
+                DatamuseAPIValidator.BASE_URL,
+                params={"sp": word, "md": "f", "max": 1},
+                timeout=2
+            )
+            
+            if response.status_code == 200:
+                results = response.json()
+                if results and 'tags' in results[0]:
+                    for tag in results[0].get('tags', []):
+                        if tag.startswith('f:'):
+                            return float(tag.split(':')[1])
+            
+            return 0.0
+            
+        except:
+            return 0.0
 
 
 class WordValidator:
-    """Handles word validation and dictionary lookups"""
+    """Handles word validation and dictionary lookups with hybrid local + API approach"""
     
-    def __init__(self, data_dir: str = None):
+    def __init__(self, data_dir: str = None, use_api_fallback: bool = True):
+        """
+        Initialize word validator
+        
+        Args:
+            data_dir: Path to word data directory
+            use_api_fallback: If True, uses Datamuse API when word not in local cache
+        """
         if data_dir is None:
             data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
         
         self.data_dir = data_dir
+        self.use_api_fallback = use_api_fallback
         self.words_set = self._load_words()
         self.words_by_length = self._load_words_by_length()
+        self.api_validator = DatamuseAPIValidator() if use_api_fallback else None
+        
+        # Statistics tracking
+        self.stats = {
+            'local_hits': 0,
+            'api_hits': 0,
+            'api_misses': 0
+        }
     
     def _load_words(self) -> set:
         """Load all valid words into a set for fast lookup"""
@@ -37,8 +136,37 @@ class WordValidator:
             return {int(k): v for k, v in data.items()}
     
     def is_valid_word(self, word: str) -> bool:
-        """Check if a word is valid"""
-        return word.lower() in self.words_set
+        """
+        Check if a word is valid using hybrid approach:
+        1. Check local cache first (instant - 3,154 curated words)
+        2. If not found and API enabled, check Datamuse API (100,000+ words)
+        
+        Args:
+            word: Word to validate
+            
+        Returns:
+            True if word is valid
+        """
+        word_lower = word.lower()
+        
+        # First, check local cache (instant)
+        if word_lower in self.words_set:
+            self.stats['local_hits'] += 1
+            return True
+        
+        # If not in local cache and API fallback enabled, check API
+        if self.use_api_fallback and self.api_validator:
+            is_valid = self.api_validator.is_valid_word(word_lower)
+            if is_valid:
+                self.stats['api_hits'] += 1
+                # Optionally: add to local cache for next time
+                self.words_set.add(word_lower)
+            else:
+                self.stats['api_misses'] += 1
+            return is_valid
+        
+        # Not found in local cache and no API fallback
+        return False
     
     def get_words_of_length(self, length: int) -> List[str]:
         """Get all words of a specific length"""
@@ -48,6 +176,32 @@ class WordValidator:
         """Get a random word of specific length"""
         words = self.get_words_of_length(length)
         return random.choice(words) if words else None
+    
+    def get_validation_stats(self) -> Dict:
+        """
+        Get statistics about word validation performance
+        
+        Returns:
+            Dict with local_hits, api_hits, api_misses counts
+        """
+        total = sum(self.stats.values())
+        return {
+            **self.stats,
+            'total_validations': total,
+            'local_hit_rate': f"{(self.stats['local_hits'] / total * 100):.1f}%" if total > 0 else "0%",
+            'api_enabled': self.use_api_fallback
+        }
+    
+    def set_api_fallback(self, enabled: bool):
+        """
+        Enable or disable API fallback
+        
+        Args:
+            enabled: True to enable Datamuse API fallback, False for local-only
+        """
+        self.use_api_fallback = enabled
+        if enabled and not self.api_validator:
+            self.api_validator = DatamuseAPIValidator()
 
 
 class TowerValidator:
@@ -358,6 +512,19 @@ class WordRiseGame:
             'is_active': self.end_time is None
         }
     
+    def get_validation_stats(self) -> Dict:
+        """Get word validation statistics (local vs API usage)"""
+        return self.validator.get_validation_stats()
+    
+    def set_api_fallback(self, enabled: bool):
+        """
+        Enable or disable Datamuse API fallback for word validation
+        
+        Args:
+            enabled: True for hybrid mode (local + API), False for local-only
+        """
+        self.validator.set_api_fallback(enabled)
+    
     @staticmethod
     def get_daily_word(day: Optional[date] = None) -> str:
         """
@@ -388,12 +555,13 @@ class WordRiseGame:
 
 # Helper function for quick game testing
 def play_test_game():
-    """Quick test of game engine"""
-    print("🏗️  WORDRISE GAME ENGINE TEST\n")
+    """Quick test of game engine with hybrid word validation"""
+    print("🗼 WORDRISE GAME ENGINE TEST (Hybrid Mode)\n")
     
     game = WordRiseGame(starting_word='art')
     print(f"Starting word: {game.starting_word.upper()}")
-    print(f"Tower: {' → '.join(word.upper() for word in game.tower)}\n")
+    print(f"Tower: {' → '.join(word.upper() for word in game.tower)}")
+    print(f"API Fallback: {'ENABLED' if game.validator.use_api_fallback else 'DISABLED'}\n")
     
     # Test adding words
     test_words = ['tart', 'start', 'stray']
@@ -408,6 +576,15 @@ def play_test_game():
         else:
             print(f"✗ Failed: {result['message']}")
         print()
+    
+    # Show validation stats
+    print("📊 Validation Statistics:")
+    stats = game.get_validation_stats()
+    print(f"  Local cache hits: {stats['local_hits']}")
+    print(f"  API lookups: {stats['api_hits']}")
+    print(f"  Invalid words: {stats['api_misses']}")
+    print(f"  Local hit rate: {stats['local_hit_rate']}")
+    print()
     
     # Get hint
     print("Getting hint...")
@@ -429,6 +606,13 @@ def play_test_game():
     for item in final['breakdown']:
         print(f"  Level {item['level']}: {item['word'].upper()} = {item['base_points']} pts " +
               f"(+{item['letter_bonus']} letter bonus)")
+    
+    # Final stats
+    print(f"\n📈 Final Validation Stats:")
+    final_stats = game.get_validation_stats()
+    print(f"  Total validations: {final_stats['total_validations']}")
+    print(f"  Local hit rate: {final_stats['local_hit_rate']}")
+    print(f"  API was used: {'Yes' if final_stats['api_hits'] > 0 else 'No'}")
 
 
 if __name__ == "__main__":
