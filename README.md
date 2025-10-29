@@ -1,235 +1,370 @@
-# 🎲 WordRise - Random Mode Update
+# WordRise Enhanced 🏗️💎
 
-Your WordRise game has been updated to give a **random 3-letter word every time** instead of one daily challenge!
+An advanced word-building tower game with user authentication, token economy, powerups, difficulty levels, and comprehensive statistics tracking.
 
-## 🎯 What Changed
+## ✨ New Features
 
-### Before (Daily Challenge Mode) ❌
-- One starting word per day
-- Same word for everyone
-- Had to wait until tomorrow for new word
-- Used date-based seeding
+### 1. **User Authentication System** 🔐
+- Secure registration and login with JWT tokens
+- Password hashing for security
+- Session management
+- User profiles
 
-### After (Random Mode) ✅
-- **Different random word every time you start**
-- **Unlimited games** - play as much as you want!
-- Each game is unique
-- True randomization
+### 2. **Token Economy** 💎
+- Start with 100 free tokens
+- Earn tokens by completing games (10 base + 2 per tower level)
+- Spend tokens on powerups and hints
+- Track token transactions
 
-## 📦 Files Included
+### 3. **Difficulty Levels** 🎯
+- **Easy**: Start with 1-letter words
+- **Medium**: Start with 2-letter words  
+- **Hard**: Start with 3-letter words (classic)
 
-1. **game_engine.py** - Updated core game engine
-   - Changed `get_daily_word()` → `get_random_starting_word()`
-   - Removes date-based seeding
-   - Returns truly random 3-letter word each time
+### 4. **Powerups** ⚡
+- **Hint** (10 tokens): Get a clue for the next word
+- **Remove Letter** (25 tokens): Go back one letter to find alternative paths
+- **Skip Word** (50 tokens): Choose a different word at the same level
 
-2. **api_routes.py** - Updated API endpoints
-   - `/api/game/start` - Gets random starting word
-   - All other routes stay the same
+### 5. **User Statistics** 📊
+- Total games played and completed
+- Highest score and tallest tower
+- Average score calculation
+- Total play time tracking
+- Most used letters and words
+- Longest word used
+- Fastest game completion
+- Game history with all details
 
-3. **frontend_example.js** - Example JavaScript
-   - Shows how to start random games
-   - Complete game logic included
+### 6. **Leaderboard** 🏆
+- Global rankings by highest score
+- View top players and their achievements
 
-4. **index.html** - Example HTML interface
-   - Beautiful UI with random mode
-   - Ready to customize
+## 🗂️ Project Structure
 
-5. **test_random_mode.py** - Test script
-   - Verifies random words work
-   - Shows 10 different starting words
-
-6. **RANDOM_MODE_UPDATE.md** - Detailed documentation
-   - Complete explanation of changes
-   - Migration guide
-   - Testing checklist
-
-## 🚀 Quick Start
-
-### Option 1: Test It First
-
-```bash
-# 1. Navigate to this folder
-cd wordrise_random_mode
-
-# 2. Run test script (requires your words.json data files)
-python test_random_mode.py
+```
+wordrise-enhanced/
+├── app/
+│   ├── __init__.py
+│   ├── game_engine.py          # Enhanced game logic with powerups
+│   ├── models/
+│   │   ├── __init__.py
+│   │   └── models.py           # Database models (User, GameSession, UserStats, etc.)
+│   ├── auth/
+│   │   ├── __init__.py
+│   │   └── auth_utils.py       # JWT authentication utilities
+│   └── api/
+│       ├── __init__.py
+│       └── routes.py           # All API endpoints
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── enhanced-game.js    # Frontend JavaScript
+├── data/
+│   ├── words.json              # Word dictionary
+│   └── words_by_length.json   # Indexed words
+├── index.html                  # Main HTML file
+├── run.py                      # Flask application entry point
+├── requirements.txt            # Python dependencies
+├── setup_words.py              # Word database setup script
+└── README.md                   # This file
 ```
 
-You should see 10 different random starting words!
+## 🚀 Installation & Setup
 
-### Option 2: Deploy to Your App
+### Prerequisites
+- Python 3.8+
+- pip
+- Virtual environment (recommended)
 
-```bash
-# 1. Back up your current files
-cp your-app/game_engine.py your-app/game_engine.py.backup
+### Local Development
 
-# 2. Copy new files
-cp game_engine.py your-app/
-cp api_routes.py your-app/
+1. **Clone or download the project**
+   ```bash
+   cd wordrise-enhanced
+   ```
 
-# 3. Update your frontend to use the new "New Game" button
-#    (See frontend_example.js for reference)
+2. **Create and activate virtual environment**
+   ```bash
+   python -m venv venv
+   
+   # On Windows:
+   venv\Scripts\activate
+   
+   # On macOS/Linux:
+   source venv/bin/activate
+   ```
 
-# 4. Test locally
-python your-app/run.py
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-# 5. Deploy
-git add .
-git commit -m "Update: Random word mode"
-git push
+4. **Setup word database**
+   ```bash
+   python setup_words.py
+   ```
+   This downloads NLTK word corpus and creates the word database.
+
+5. **Initialize database**
+   ```bash
+   python -c "from run import app, db; app.app_context().push(); db.create_all()"
+   ```
+
+6. **Run the application**
+   ```bash
+   python run.py
+   ```
+
+7. **Open in browser**
+   ```
+   http://localhost:5000
+   ```
+
+### Environment Variables
+
+Create a `.env` file (optional for local dev):
+```env
+SECRET_KEY=your-secret-key-here
+DATABASE_URL=sqlite:///wordrise.db
+PORT=5000
 ```
 
-## 🔧 Integration Guide
+For production, use a strong SECRET_KEY and PostgreSQL DATABASE_URL.
 
-### Backend Changes (Required)
+## 🚂 Railway Deployment
 
-**1. Replace game_engine.py method:**
+### Option 1: Deploy via Railway CLI
 
-The only change in the game engine is one method:
+1. **Install Railway CLI**
+   ```bash
+   npm install -g @railway/cli
+   ```
 
-```python
-# OLD (remove):
-@staticmethod
-def get_daily_word(day: Optional[date] = None) -> str:
-    # ... date-based logic ...
+2. **Login to Railway**
+   ```bash
+   railway login
+   ```
 
-# NEW (use this):
-@staticmethod
-def get_random_starting_word() -> str:
-    """Get a random 3-letter word for starting a new game"""
-    validator = WordValidator()
-    three_letter_words = validator.get_words_of_length(3)
-    return random.choice(three_letter_words)
-```
+3. **Initialize project**
+   ```bash
+   railway init
+   ```
 
-**2. Update API route:**
+4. **Add environment variables**
+   ```bash
+   railway variables set SECRET_KEY=<your-random-secret-key>
+   ```
 
-In your API routes file, change:
+5. **Deploy**
+   ```bash
+   railway up
+   ```
 
-```python
-# OLD:
-starting_word = WordRiseGame.get_daily_word()
+### Option 2: Deploy via GitHub
 
-# NEW:
-starting_word = WordRiseGame.get_random_starting_word()
-```
+1. **Push code to GitHub repository**
 
-### Frontend Changes (Required)
+2. **Go to [Railway](https://railway.app)**
 
-**1. Update button text:**
+3. **Create New Project** → **Deploy from GitHub**
 
-```html
-<!-- OLD: -->
-<button id="dailyChallengeBtn">📅 Daily Challenge</button>
+4. **Select your repository**
 
-<!-- NEW: -->
-<button id="newGameBtn">🎲 New Random Game</button>
-```
+5. **Add environment variables**:
+   - `SECRET_KEY`: Generate a random secret key
+   - Railway will automatically set `DATABASE_URL` with PostgreSQL
 
-**2. Update JavaScript function:**
+6. **Deploy**
 
-```javascript
-// OLD:
-async function startDailyChallenge() {
-    const response = await fetch('/api/daily', { method: 'GET' });
-    // ...
+### Railway Configuration
+
+The project includes `railway.json` for automatic configuration:
+```json
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "gunicorn run:app",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
 }
-
-// NEW:
-async function startNewGame() {
-    const response = await fetch('/api/game/start', { method: 'POST' });
-    const data = await response.json();
-    
-    if (data.success) {
-        startingWord = data.starting_word;
-        tower = [startingWord];
-        updateUI();
-    }
-}
 ```
 
-**That's it!** Everything else stays the same.
+### Post-Deployment Setup
 
-## ✅ Testing Checklist
+After deployment, you need to setup the word database:
 
-After deploying, verify:
+1. **Connect to Railway shell**:
+   ```bash
+   railway run bash
+   ```
 
-- [ ] Click "New Game" multiple times
-- [ ] Each time gives a different starting word
-- [ ] Can play unlimited games without waiting
-- [ ] All game mechanics still work (add words, scoring, hints)
-- [ ] Tower building rules still apply
-- [ ] Word validation works correctly
+2. **Run setup script**:
+   ```bash
+   python setup_words.py
+   ```
 
-## 🎮 Example Usage
+Or create a one-time service that runs setup_words.py on first deployment.
 
-```javascript
-// Start 5 random games - each with different word
-for (let i = 0; i < 5; i++) {
-    const word = WordRiseGame.get_random_starting_word();
-    console.log(`Game ${i+1}: ${word}`);
-}
+## 📊 Database Schema
 
-// Output:
-// Game 1: fox
-// Game 2: zen
-// Game 3: cat
-// Game 4: joy
-// Game 5: oak
-```
+### Users
+- `id`: Primary key
+- `username`: Unique username
+- `email`: Unique email
+- `password_hash`: Hashed password
+- `tokens`: Current token balance
+- `total_tokens_earned`: Lifetime tokens earned
+- `total_tokens_spent`: Lifetime tokens spent
+- `created_at`, `last_login`, `is_active`
 
-## 📊 Benefits
+### GameSessions
+- `id`: Primary key
+- `user_id`: Foreign key to User
+- `starting_word`: Initial word
+- `difficulty`: easy/medium/hard
+- `tower`: JSON array of words
+- `final_score`, `tower_height`
+- `hints_used`: Number of hints used
+- `powerups_used`: JSON tracking powerup usage
+- `started_at`, `ended_at`, `play_time_seconds`
+- `is_completed`: Boolean
 
-### For Players:
-- 🎮 Unlimited games (no daily limit)
-- 🎲 Every game is different
-- ⚡ Instant replay
-- 🔥 More addictive "just one more" gameplay
+### UserStats
+- `user_id`: Foreign key to User
+- Game statistics (games played, highest score, etc.)
+- `most_used_letters`: JSON object
+- `most_used_words`: JSON object
+- `longest_word_used`, `fastest_game_seconds`
 
-### For You:
-- 📈 Higher engagement
-- 🚀 Better retention
-- 💰 More ad impressions
-- 🎯 Simpler code (no date tracking)
+### TokenTransactions
+- `id`: Primary key
+- `user_id`: Foreign key to User
+- `amount`: Tokens (positive=earn, negative=spend)
+- `transaction_type`: 'earn' or 'spend'
+- `reason`: Description
+- `created_at`: Timestamp
 
-## 🤔 Troubleshooting
+### TokenPrices
+- `item_type`: Unique (hint, remove_letter, skip_word, etc.)
+- `cost`: Token cost
+- `description`: Item description
 
-### "Getting the same word every time"
-- Check that you're using `random.choice()` without a seed
-- Make sure not calling `random.seed()` anywhere
-- Verify `get_random_starting_word()` is being called (not old method)
+## 🎮 API Endpoints
 
-### "Frontend not updating"
-- Clear browser cache (Ctrl+F5)
-- Check browser console for errors
-- Verify API endpoint is `/api/game/start` (POST)
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login user
+- `GET /api/auth/me` - Get current user info
 
-### "Words not validating"
-- Ensure `data/words.json` exists
-- Check `data/words_by_length.json` exists
-- Verify word list has 3-letter words
+### Game
+- `POST /api/game/start` - Start new game (with difficulty)
+- `POST /api/game/<session_id>/add-word` - Add word to tower
+- `POST /api/game/<session_id>/hint` - Get hint (costs tokens)
+- `POST /api/game/<session_id>/remove-letter` - Remove letter powerup
+- `POST /api/game/<session_id>/skip-word` - Skip word powerup
+- `POST /api/game/<session_id>/end` - End game and get results
 
-## 📝 Rollback
+### Statistics
+- `GET /api/stats/me` - Get user statistics
+- `GET /api/stats/history` - Get game history
+- `GET /api/stats/leaderboard` - Get global leaderboard
 
-If needed, restore the old daily challenge mode:
+### Tokens
+- `GET /api/tokens/balance` - Get token balance
+- `GET /api/tokens/history` - Get transaction history
+- `GET /api/tokens/prices` - Get powerup prices
 
+## 🎯 Game Rules
+
+1. **Start** with a word (1, 2, or 3 letters based on difficulty)
+2. **Add ONE letter** to create a new word
+3. **Use ALL letters** from the previous word
+4. **Build higher** to maximize your score
+5. **Use powerups** strategically to overcome challenges
+
+### Scoring
+- Base: Word Length × Level Number
+- Bonuses: Uncommon letters (Q, X, Z, J, K) and fast completion
+- Penalties: None! But hints and powerups cost tokens
+
+## 💡 Token Strategy Tips
+
+1. **Save tokens early** - Build as high as you can without powerups
+2. **Use hints wisely** - When stuck, a hint is cheaper than giving up
+3. **Remove Letter** - Great for recovering from difficult words
+4. **Skip Word** - Perfect when you know the next letter but can't find the word
+5. **Complete games** - Finish games to earn more tokens
+
+## 🔧 Configuration
+
+### Token Prices (Default)
+- Hint: 10 tokens
+- Remove Letter: 25 tokens
+- Skip Word: 50 tokens
+
+These can be adjusted in the database through the `TokenPrices` table.
+
+### Starting Tokens
+New users start with 100 tokens (configurable in `models.py`).
+
+### Token Rewards
+- Base: 10 tokens per completed game
+- Bonus: 2 tokens per tower level
+- Example: A 5-level tower = 10 + (5 × 2) = 20 tokens
+
+## 🐛 Troubleshooting
+
+### Database Issues
 ```bash
-# Restore backup
-cp game_engine.py.backup game_engine.py
-
-# Or revert git commit
-git revert HEAD
-git push
+# Reset database (caution: deletes all data)
+rm wordrise.db
+python -c "from run import app, db; app.app_context().push(); db.create_all()"
 ```
 
-## 🎉 That's It!
+### Word Data Missing
+```bash
+python setup_words.py
+```
 
-The change is super simple - just one method renamed and frontend updated. Everything else works exactly the same!
+### Token Prices Not Initialized
+```bash
+python -c "from run import app, db; from app.models.models import TokenPrice; app.app_context().push(); TokenPrice.initialize_prices()"
+```
 
-**Questions?** The change is:
-1. One method: `get_daily_word()` → `get_random_starting_word()`
-2. Frontend calls new endpoint
-3. Done! 🚀
+## 📝 Future Enhancements
 
-Enjoy your unlimited random word games! 🎲🗼
+- [ ] Daily challenges with special rewards
+- [ ] Achievement system with badges
+- [ ] Friend system and private leaderboards
+- [ ] Token purchase with real money (microtransactions)
+- [ ] Custom word packs for different languages
+- [ ] Multiplayer competitive mode
+- [ ] Mobile app version
+- [ ] Social media sharing integration
+
+## 📄 License
+
+MIT License - Feel free to use and modify for your own projects!
+
+## 🙏 Credits
+
+- Word database: NLTK Words Corpus
+- Word validation: Datamuse API (fallback)
+- Built with Flask, SQLAlchemy, and vanilla JavaScript
+
+## 🤝 Contributing
+
+Contributions welcome! Please feel free to submit a Pull Request.
+
+## 📧 Support
+
+For issues or questions, please open an issue on GitHub.
+
+---
+
+**Happy word building!** 🏗️💎

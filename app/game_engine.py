@@ -335,17 +335,19 @@ class ScoreCalculator:
 class WordRiseGame:
     """Main game engine for WordRise"""
     
-    def __init__(self, starting_word: Optional[str] = None, data_dir: str = None):
+    def __init__(self, starting_word: Optional[str] = None, data_dir: str = None, difficulty: str = 'hard'):
         """
         Initialize a new game
         
         Args:
-            starting_word: Initial word (if None, will use daily word or random)
+            starting_word: Initial word (if None, will use difficulty-based random word)
             data_dir: Path to word data directory
+            difficulty: 'easy' (1 letter), 'medium' (2 letters), 'hard' (3 letters)
         """
         self.validator = WordValidator(data_dir)
         self.tower_validator = TowerValidator()
         self.score_calculator = ScoreCalculator()
+        self.difficulty = difficulty
         
         # Game state
         self.tower: List[str] = []
@@ -353,12 +355,18 @@ class WordRiseGame:
         self.end_time: Optional[datetime] = None
         self.hints_used: int = 0
         
+        # Powerup tracking
+        self.powerups_used = {
+            'letter_removals': 0,
+            'word_skips': 0
+        }
+        
         # Initialize with starting word
         if starting_word:
             self.starting_word = starting_word.lower()
         else:
-            # Use 3-letter word as default
-            self.starting_word = self.validator.get_random_word(3) or 'cat'
+            # Use difficulty-based word
+            self.starting_word = self.get_starting_word_by_difficulty(difficulty)
         
         self.tower.append(self.starting_word)
         self.start_time = datetime.now()
@@ -455,8 +463,10 @@ class WordRiseGame:
             'tower': self.tower.copy(),
             'height': self.get_tower_height(),
             'starting_word': self.starting_word,
+            'difficulty': self.difficulty,
             'time_seconds': time_taken,
             'hints_used': self.hints_used,
+            'powerups_used': self.powerups_used.copy(),
             **score_data
         }
     
@@ -508,7 +518,9 @@ class WordRiseGame:
             'height': self.get_tower_height(),
             'current_word': self.get_current_word(),
             'starting_word': self.starting_word,
+            'difficulty': self.difficulty,
             'hints_used': self.hints_used,
+            'powerups_used': self.powerups_used.copy(),
             'is_active': self.end_time is None
         }
     
@@ -524,6 +536,122 @@ class WordRiseGame:
             enabled: True for hybrid mode (local + API), False for local-only
         """
         self.validator.set_api_fallback(enabled)
+    
+    def get_starting_word_by_difficulty(self, difficulty: str) -> str:
+        """
+        Get a starting word based on difficulty level
+        
+        Args:
+            difficulty: 'easy' (1 letter), 'medium' (2 letters), 'hard' (3 letters)
+        
+        Returns:
+            Random word of appropriate length
+        """
+        length_map = {
+            'easy': 1,
+            'medium': 2,
+            'hard': 3
+        }
+        
+        length = length_map.get(difficulty, 3)
+        word = self.validator.get_random_word(length)
+        
+        # Fallback words
+        fallbacks = {1: 'a', 2: 'at', 3: 'cat'}
+        return word or fallbacks[length]
+    
+    def remove_letter(self) -> Dict:
+        """
+        Powerup: Remove one letter from current word and set that as new current word
+        This allows player to "undo" by going back a step
+        
+        Returns:
+            Dict with success status and new current word
+        """
+        if len(self.tower) < 2:
+            return {
+                'success': False,
+                'message': "Cannot remove letter from starting word"
+            }
+        
+        # Get current word and previous word
+        current_word = self.get_current_word()
+        
+        if len(current_word) <= 1:
+            return {
+                'success': False,
+                'message': "Cannot remove letter from single-letter word"
+            }
+        
+        # Find a valid word that's one letter shorter
+        target_length = len(current_word) - 1
+        possible_words = []
+        
+        for word in self.validator.get_words_of_length(target_length):
+            if word not in self.tower:
+                # Check if this word can be made from current word (removing one letter)
+                if all(current_word.count(letter) >= word.count(letter) for letter in set(word)):
+                    possible_words.append(word)
+        
+        if not possible_words:
+            return {
+                'success': False,
+                'message': "No valid shorter words available"
+            }
+        
+        # Pick a random valid word
+        new_word = random.choice(possible_words)
+        self.tower.append(new_word)
+        self.powerups_used['letter_removals'] += 1
+        
+        return {
+            'success': True,
+            'message': f"Removed a letter! New word: {new_word.upper()}",
+            'new_word': new_word,
+            'tower_height': self.get_tower_height()
+        }
+    
+    def skip_word(self) -> Dict:
+        """
+        Powerup: Skip current word and choose a new word at the same length
+        
+        Returns:
+            Dict with success status and new current word
+        """
+        if len(self.tower) < 2:
+            return {
+                'success': False,
+                'message': "Cannot skip starting word"
+            }
+        
+        current_word = self.get_current_word()
+        previous_word = self.tower[-2]
+        
+        # Find alternative words at the same length that can be built from previous
+        possible_words = []
+        for word in self.validator.get_words_of_length(len(current_word)):
+            if word not in self.tower and word != current_word:
+                is_valid, _ = self.tower_validator.can_build_word(previous_word, word)
+                if is_valid:
+                    possible_words.append(word)
+        
+        if not possible_words:
+            return {
+                'success': False,
+                'message': "No alternative words available at this level"
+            }
+        
+        # Replace current word with new word
+        new_word = random.choice(possible_words)
+        self.tower[-1] = new_word
+        self.powerups_used['word_skips'] += 1
+        
+        return {
+            'success': True,
+            'message': f"Skipped to: {new_word.upper()}",
+            'new_word': new_word,
+            'tower_height': self.get_tower_height()
+        }
     
     @staticmethod
     def get_random_starting_word() -> str:
