@@ -263,7 +263,9 @@ class WordRiseGame {
      * Get game mode display name
      */
     getModeDisplay() {
-        return this.mode === 'daily' ? '📅 Daily Challenge' : '🎮 Practice Mode';
+        if (this.mode === 'daily') return '📅 Daily Challenge';
+        if (this.mode === 'random') return '🎲 Random Game';
+        return '🎮 Practice Mode';
     }
 }
 

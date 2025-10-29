@@ -75,15 +75,28 @@ class WordRiseAPI {
 
     /**
      * Start a new game
-     * @param {string} mode - 'daily' or 'practice'
+     * @param {string} mode - 'daily', 'random', or 'practice'
      * @param {string} startingWord - Optional, for practice mode only
      */
     async startGame(mode, startingWord = null) {
-        const body = { mode };
-        if (mode === 'practice' && startingWord) {
-            body.starting_word = startingWord.toLowerCase();
+        if (mode === 'random') {
+            // For random mode, call the new random endpoint
+            return this.post('/game/start', {});
+        } else if (mode === 'practice' && startingWord) {
+            // For practice mode with custom word
+            const body = { 
+                mode: 'practice',
+                starting_word: startingWord.toLowerCase() 
+            };
+            return this.post('/game/start', body);
+        } else {
+            // For daily mode or other modes
+            const body = { mode };
+            if (mode === 'practice' && startingWord) {
+                body.starting_word = startingWord.toLowerCase();
+            }
+            return this.post('/game/start', body);
         }
-        return this.post('/game/start', body);
     }
 
     /**

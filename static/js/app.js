@@ -22,18 +22,22 @@ function showGamePage() {
 // ============================================
 
 async function startGame(mode) {
-    if (mode === 'daily') {
+    if (mode === 'daily' || mode === 'random') {
         try {
             showLoading();
-            const dailyData = await api.getDailyWord();
+            
+            // For random mode, get a random starting word
+            // For daily mode, get the daily word
+            const response = await api.startGame(mode);
             hideLoading();
             
-            if (dailyData.success) {
-                await initializeGame(mode, dailyData.word);
+            if (response.success) {
+                await initializeGame(mode, response.starting_word || response.word);
             }
         } catch (error) {
             hideLoading();
-            showMessage('Failed to load daily challenge', 'error');
+            showMessage('Failed to start game', 'error');
+            console.error('Start game error:', error);
         }
     }
 }
