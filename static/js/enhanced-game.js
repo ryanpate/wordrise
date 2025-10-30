@@ -1,6 +1,7 @@
 /**
  * WordRise Enhanced - Frontend JavaScript
  * Handles authentication, game logic, tokens, and powerups
+ * Updated with enhanced hint system support
  */
 
 // Global state
@@ -253,37 +254,27 @@ async function startGame() {
         
         if (data.success) {
             currentSession = data.session_id;
-            currentUser.tokens = data.user_tokens;
             
-            // Initialize game display
-            initializeGameDisplay(data.game_state);
+            // Update display
+            document.getElementById('game-difficulty').textContent = 
+                selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1);
+            
+            updateGameDisplay(data.game_state);
             showGamePage();
-            updateTokenDisplay();
         } else {
             alert(data.message || 'Failed to start game');
         }
     } catch (error) {
+        console.error('Failed to start game:', error);
         alert('Failed to start game. Please try again.');
     }
-}
-
-function initializeGameDisplay(gameState) {
-    document.getElementById('tower-height').textContent = gameState.height;
-    document.getElementById('game-difficulty').textContent = 
-        selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1);
-    document.getElementById('hints-used').textContent = gameState.hints_used;
-    
-    updateTowerDisplay(gameState.tower);
-    updateCurrentLetters(gameState.current_word);
-    document.getElementById('word-input').value = '';
-    document.getElementById('message').textContent = '';
 }
 
 function updateTowerDisplay(tower) {
     const towerEl = document.getElementById('word-tower');
     towerEl.innerHTML = '';
     
-    tower.slice().reverse().forEach((word, index) => {
+    tower.forEach((word, index) => {
         const wordEl = document.createElement('div');
         wordEl.className = 'tower-word';
         wordEl.textContent = word.toUpperCase();
@@ -305,15 +296,27 @@ function updateCurrentLetters(word) {
     });
 }
 
-function showMessage(message, isError = false) {
+function showMessage(message, isError = false, duration = 3000) {
     const messageEl = document.getElementById('message');
-    messageEl.textContent = message;
-    messageEl.className = isError ? 'message error' : 'message success';
     
-    setTimeout(() => {
-        messageEl.textContent = '';
-        messageEl.className = 'message';
-    }, 3000);
+    // Clear any existing timeout
+    if (messageEl._timeout) {
+        clearTimeout(messageEl._timeout);
+    }
+    
+    // Set message content and style
+    messageEl.textContent = message || '';
+    messageEl.className = isError ? 'message error' : 'message success';
+    messageEl.style.display = message ? 'block' : 'none';
+    
+    // Auto-hide after duration
+    if (message && duration > 0) {
+        messageEl._timeout = setTimeout(() => {
+            messageEl.textContent = '';
+            messageEl.className = 'message';
+            messageEl.style.display = 'none';
+        }, duration);
+    }
 }
 
 async function submitWord() {
@@ -342,6 +345,7 @@ async function submitWord() {
             showMessage(data.message, true);
         }
     } catch (error) {
+        console.error('Failed to add word:', error);
         showMessage('Failed to add word', true);
     }
 }
@@ -354,7 +358,7 @@ function updateGameDisplay(gameState) {
 }
 
 // ============================================================================
-// POWERUPS
+// POWERUPS - ENHANCED HINT HANDLING
 // ============================================================================
 
 async function usePowerup(type) {
@@ -375,27 +379,122 @@ async function usePowerup(type) {
             headers: {
                 'Authorization': `Bearer ${authToken}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({
+                hint_type: 'smart' // Use smart hints by default
+            })
         });
         
         const data = await response.json();
         
-        if (data.success) {
-            showMessage(type === 'hint' ? data.hint : data.message);
-            
-            // Update tokens
-            currentUser.tokens = data.tokens_remaining;
-            updateTokenDisplay();
-            
-            // Update game state if provided
-            if (data.game_state) {
-                updateGameDisplay(data.game_state);
+        console.log('Powerup response:', data); // Debug logging
+        
+        // Handle hint responses
+        if (type === 'hint') {
+            if (data.success) {
+                // Show hint with additional context
+                let hintMessage = data.hint || 'Try thinking creatively!';
+                
+                // Add context if available
+                if (data.possible_words_count) {
+                    hintMessage += ` (${data.possible_words_count} possible words)`;
+                }
+                
+                showMessage(hintMessage, false, 5000); // Show for 5 seconds
+                
+                // Update tokens
+                if (data.tokens_remaining !== undefined) {
+                    currentUser.tokens = data.tokens_remaining;
+                    updateTokenDisplay();
+                }
+            } else if (data.no_words_available) {
+                // Special case: No more words available (tower complete!)
+                showTowerCompleteDialog(data);
+            } else {
+                // Regular error
+                showMessage(data.message || 'Hint unavailable', true);
             }
         } else {
-            showMessage(data.message, true);
+            // Handle other powerups
+            if (data.success) {
+                showMessage(data.message);
+                
+                // Update tokens
+                if (data.tokens_remaining !== undefined) {
+                    currentUser.tokens = data.tokens_remaining;
+                    updateTokenDisplay();
+                }
+                
+                // Update game state if provided
+                if (data.game_state) {
+                    updateGameDisplay(data.game_state);
+                }
+            } else {
+                showMessage(data.message || 'Powerup failed', true);
+            }
         }
     } catch (error) {
-        showMessage('Powerup failed', true);
+        console.error('Powerup error:', error);
+        showMessage(`${type} failed. Please try again.`, true);
+    }
+}
+
+function showTowerCompleteDialog(data) {
+    const message = data.message || "🎉 Amazing! You've reached the maximum tower height!";
+    const height = data.tower_height || 'final';
+    const finalWord = data.final_word || '';
+    
+    // Create a custom modal for tower completion
+    const dialog = document.createElement('div');
+    dialog.className = 'modal';
+    dialog.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 8px;">
+                        <path d="M7 4V8C7 10.7614 9.23858 13 12 13C14.7614 13 17 10.7614 17 8V4" stroke="#5a7a99" stroke-width="2" stroke-linecap="round"/>
+                        <rect x="6" y="2" width="12" height="4" rx="1" fill="#5a7a99"/>
+                        <path d="M12 13V17M12 17H8M12 17H16" stroke="#5a7a99" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M8 17V20H16V17" stroke="#5a7a99" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Tower Complete!
+                </h3>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; padding: 20px; background: var(--paper-cream); border-radius: 8px; margin-bottom: 20px;">
+                    <p style="font-size: 18px; margin: 0; color: var(--text-primary);">${message}</p>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border-light); margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="color: var(--text-secondary);">Final Height:</span>
+                        <span style="font-weight: 700; color: var(--accent-blue);">${height} words</span>
+                    </div>
+                    ${finalWord ? `
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-secondary);">Final Word:</span>
+                        <span style="font-weight: 700; color: var(--accent-blue);">${finalWord}</span>
+                    </div>
+                    ` : ''}
+                </div>
+                <p style="text-align: center; color: var(--text-secondary); font-size: 14px;">
+                    You've built the tallest tower possible with these letters. Ready to see your final score?
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeTowerCompleteDialog(); endGame();">View Final Score</button>
+                <button class="btn btn-secondary" onclick="closeTowerCompleteDialog();">Keep Playing</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(dialog);
+    window._towerCompleteDialog = dialog;
+}
+
+function closeTowerCompleteDialog() {
+    if (window._towerCompleteDialog) {
+        window._towerCompleteDialog.remove();
+        window._towerCompleteDialog = null;
     }
 }
 
@@ -431,6 +530,7 @@ async function endGame() {
             alert(data.message || 'Failed to end game');
         }
     } catch (error) {
+        console.error('Failed to end game:', error);
         alert('Failed to end game');
     }
 }
@@ -449,8 +549,8 @@ function displayResults(data) {
     
     // Show tower
     const towerDisplay = document.getElementById('final-tower-display');
-    towerDisplay.innerHTML = '<h4>Your Tower:</h4>' + 
-        result.tower.map(word => `<div>${word.toUpperCase()}</div>`).join('');
+    towerDisplay.innerHTML = '<h4 style="color: var(--text-primary); margin-bottom: 15px;">Your Tower:</h4>' + 
+        result.tower.map(word => `<div style="margin: 5px 0; font-weight: 600; color: var(--accent-blue);">${word.toUpperCase()}</div>`).join('');
     
     document.getElementById('results-modal').classList.remove('hidden');
 }
@@ -478,6 +578,7 @@ async function showStats() {
             document.getElementById('stats-modal').classList.remove('hidden');
         }
     } catch (error) {
+        console.error('Failed to load statistics:', error);
         alert('Failed to load statistics');
     }
 }
